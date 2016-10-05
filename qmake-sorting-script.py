@@ -12,7 +12,6 @@ value_seperation_regex = re.compile(r'^\s*(?P<file>[^\s]+)?\s*(?P<rest>.*)\s*$')
 variables_to_resort = ['SOURCES']
 
 
-
 class Line:
     def __init__(self, content):
         if '\r\n' in content:
