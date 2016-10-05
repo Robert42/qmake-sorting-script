@@ -98,7 +98,8 @@ def resort_file(filename):
                 last_line = Line(line)
                 lines.append(last_line)
 
-    had_change = False
+    # TODO #9 detect, whether the changes need to be saved
+    had_change = True
 
     if had_change:
         with open(filename, 'w') as file:
