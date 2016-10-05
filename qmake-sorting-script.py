@@ -11,7 +11,6 @@ value_seperation_regex = re.compile(r'^\s*(?P<file>[^\s]+)?\s*(?P<rest>.*)\s*$')
 
 variables_to_resort = ['SOURCES']
 
-verbose = False
 
 
 class Line:
@@ -75,10 +74,15 @@ class Line:
             self.expect_next_line = False;
 
     def _resort(self):
-        result = '{} {}'.format(self.prefix + self.name, self.assignment)
-        result += ' ' + ' '.join(self.files) + '\n'
+        self.files.sort()
+
+        result = ['{} {}'.format(self.prefix + self.name, self.assignment)]
+        result.extend(self.files)
         if verbose:
             print('self.files {}'.format(self.files))
+            print(result)
+        result = (' \\\n'+indentation).join(result) + '\n'
+        if verbose:
             print(result)
         return result
 
@@ -105,14 +109,19 @@ def resort_file(filename):
 
 def go():
     global verbose
+    global indentation
 
     # https://docs.python.org/2/library/argparse.html
     parser = ArgumentParser(description='Resorts a qmake project file')
-    parser.add_argument('-v', '--verbose', dest='verbose', action='store_true', help='Add more verbose output for more easy debuggability')
+    parser.add_argument('-v', '--verbose', action='store_true', help='Add more verbose output for more easy debuggability')
+    parser.add_argument('-i', '--indentation', default=4, help='How much spaces to add before each line break')
     parser.add_argument('--files', dest='files', metavar='FILES', type=str, nargs='+', help='A list of files to resort')
     args = parser.parse_args()
 
     verbose = args.verbose
+    indentation = ''
+    for i in range(0, args.indentation):
+        indentation += ' '
 
     for filename in args.files:
         resort_file(filename)
