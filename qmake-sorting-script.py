@@ -114,7 +114,7 @@ def go():
     parser = ArgumentParser(description='Resorts a qmake project file as a heuristic to reduce the risk of merge conflicts.')
     parser.add_argument('-v', '--verbose', action='store_true', help='Add more verbose output for more easy debuggability')
     parser.add_argument('-i', '--indentation', default=4, help='How much spaces to add before each line break')
-    parser.add_argument('--files', dest='files', metavar='FILES', type=str, nargs='+', help='A list of files to resort')
+    parser.add_argument('--files', dest='files', metavar='FILES', default=[], type=str, nargs='+', help='A list of files to resort')
     args = parser.parse_args()
 
     verbose = args.verbose
