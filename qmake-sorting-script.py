@@ -12,7 +12,8 @@ class Line:
             self.content = self.content.replace('\r\n', '')
         self.content = self.content.replace('\n', '')
 
-    def write_out(self):
+    @property
+    def whole_content(self) -> str:
         return self.content + self.line_ending
 
 
@@ -27,7 +28,7 @@ def resort_file(filename):
     if had_change:
         with open(filename, 'w') as file:
             for line in lines:
-                file.write(line.write_out())
+                file.write(line.whole_content)
 
 
 def go():
