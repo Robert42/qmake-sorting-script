@@ -3,24 +3,31 @@
 from argparse import ArgumentParser
 
 
+class Line:
+    def __init__(self, content):
+        self.content = content
+        self.line_ending = '\n'
+        if '\r\n' in self.content:
+            self.line_ending = '\r\n'
+            self.content = self.content.replace('\r\n', '')
+        self.content = self.content.replace('\n', '')
+
+    def write_out(self):
+        return self.content + self.line_ending
+
+
 def resort_file(filename):
     lines = []
-    line_ending = '\n'
     with open(filename, 'rU') as file:
         for line in file:
-            if '\r\n' in line:
-                line_ending = '\r\n'
-                line = line.replace('\r\n', '')
-            line = line.replace('\n', '')
-            lines.append(line)
+            lines.append(Line(line))
 
     had_change = False
 
     if had_change:
         with open(filename, 'w') as file:
             for line in lines:
-                line += line_ending
-                file.write(line)
+                file.write(line.write_out())
 
 
 def go():
