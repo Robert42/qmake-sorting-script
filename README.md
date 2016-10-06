@@ -5,7 +5,7 @@ Script for sorting qmake files.
 
 If you want to resort all qmake project files found recursively in */path/to/my/project*, just run the script with:
 
-    qmake-sorting-script.py -r /path/to/my/project
+    ./qmake-sorting-script.py -r /path/to/my/project
 
 
 Overview over all possible arguments
