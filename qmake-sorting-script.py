@@ -2,7 +2,9 @@
 
 from argparse import ArgumentParser
 from copy import copy
+from os import path
 import re
+import os
 
 # https://docs.python.org/2/library/re.html
 list_start_regex = re.compile(r'^\s*(?P<prefix>(:?[a-z_A-Z][a-z_A-Z0-9]*\:)*)(?P<name>[A-Z_]+)\s*(?P<assignment>\+?=)\s*(?P<values>.*\\?)\s*$')
@@ -10,15 +12,21 @@ value_analysis_regex = re.compile(r'^\s*(?P<rest>[^\\s\\][^\\]*)?\s*(?P<expect_n
 value_seperation_regex = re.compile(r'^\s*(?P<file>[^\s]+)?\s*(?P<rest>.*)\s*$')
 
 
-variables_to_resort = ['SOURCES']
+variables_to_resort = ['SOURCES', 'HEADERS', 'FORMS', 'RESOURCES']
 
 verbose = False
 print_resorted_files = False
+move_inl_to_headers = False
+move_inl_to_sources = False
+dry_run = False
 indentation = ''
+projectfile_extensions = ['.pro', '.pri']
 
 
 class Line:
     def __init__(self, content):
+        self.name = ''
+        self.prefix = ''
         if '\r\n' in content:
             self.line_ending = '\r\n'
         else:
@@ -59,7 +67,7 @@ class Line:
 
     @property
     def is_resorted(self) -> bool:
-        return hasattr(self, 'name')
+        return len(self.name) > 0
 
     def append_line(self, line):
         line = line.replace(self.line_ending, '')
@@ -88,6 +96,19 @@ class Line:
         else:
             return False
 
+    def remove_inl_files(self):
+        inl_files = []
+        if self.is_resorted:
+            other_files = []
+            for file in self.files:
+                basename, ext = path.splitext(file)
+                if ext.lower() == '.inl':
+                    inl_files.append(file)
+                else:
+                    other_files.append(file)
+            self.files = other_files
+        return inl_files
+
     def _format_list(self):
         result = ['{} {}'.format(self.prefix + self.name, self.assignment)]
         result.extend(self.files)
@@ -113,8 +134,41 @@ def resort_file(filename):
                 lines.append(last_line)
 
     had_change = False
+    if move_inl_to_headers or move_inl_to_sources:
+        if move_inl_to_headers:
+            target_name = 'HEADERS'
+        elif move_inl_to_sources:
+            target_name = 'SOURCES'
+
+        all_inl_files = {}
+        target_list = {}
+        line_ending = '\n'
+        for line in lines:
+            line_ending = line.line_ending
+            if line.name == target_name:
+                target_list[line.prefix] = line
+            else:
+                if line.prefix not in all_inl_files:
+                    all_inl_files[line.prefix] = []
+                all_inl_files[line.prefix].extend(line.remove_inl_files())
+        if len(all_inl_files) > 0:
+            for key in sorted(all_inl_files.keys()):
+                if len(all_inl_files[key]) > 0:
+                    had_change = True
+                    if key not in target_list:
+                        target_list[key] = Line('{}{} = \\{}'.format(key, target_name, line_ending))
+                        lines.append(target_list[key])
+                    target_list[key].files.extend(all_inl_files[key])
+
     for line in lines:
-        had_change = had_change or line.resort()
+        had_change = line.resort() or had_change
+
+    if dry_run:
+        if had_change:
+            print('Would resort file {}'.format(filename))
+        else:
+            print('Would  skip  file {}'.format(filename))
+        return
 
     if had_change:
         with open(filename, 'w') as file:
@@ -124,26 +178,60 @@ def resort_file(filename):
             print("resorted file {}".format(filename))
 
 
+def excluded(file, excluded_dirs):
+    for d in excluded_dirs:
+        d = path.abspath(d)
+        if file.startswith(d):
+            return True
+    return False
+
+
 def go():
     global print_resorted_files
     global verbose
     global indentation
+    global move_inl_to_headers
+    global move_inl_to_sources
+    global dry_run
 
     # https://docs.python.org/2/library/argparse.html
     parser = ArgumentParser(description='Resorts a qmake project file as a heuristic to reduce the risk of merge conflicts.')
     parser.add_argument('-v', '--verbose', action='store_true', help='Add more verbose output for more easy debuggability')
     parser.add_argument('-p', '--print-resorted-files', dest='print_resorted_files', action='store_true', help='Print the filenames of the files, which were resorted')
-    parser.add_argument('-i', '--indentation', default=4, help='How much spaces to add before each line break')
-    parser.add_argument('--files', dest='files', metavar='FILES', default=[], type=str, nargs='+', help='A list of files to resort')
+    parser.add_argument('-i', '--indentation', default=4, help='How much spaces to add before each line break (default 4)')
+    parser.add_argument('--move-inl-to-headers', action='store_true', help='If set, all inl files are moved to the HEADERS list (if existant)')
+    parser.add_argument('--move-inl-to-sources', action='store_true', help='If set, all inl files are moved to the SOURCES list (if existant)')
+    parser.add_argument('--files', dest='files', metavar='FILE', default=[], type=str, nargs='+', help='A list of files to resort')
+    parser.add_argument('-r', '--include-recursive', metavar='PATH', default=[], type=str, nargs='+', help='A list of directories to search for *.pro and *.pri files to resort')
+    parser.add_argument('-e', '--exclude-recursive', metavar='PATH', default=[], type=str, nargs='+', help='A list of directories to exclude from the search for *.pro and *.pri files to resort')
+    parser.add_argument('-n', '--dry-run', action='store_true', help="Don't change anything, just print the project files, which would be resorted")
     args = parser.parse_args()
 
     verbose = args.verbose
+    dry_run = args.dry_run
     print_resorted_files = args.print_resorted_files or verbose
+    move_inl_to_headers = args.move_inl_to_headers
+    move_inl_to_sources = args.move_inl_to_sources
     indentation = ''
+
+    if move_inl_to_headers and move_inl_to_sources:
+        print("WARNING: --move-inl-to-headers and --move-inl-to-sources used at the same time!")
+
     for i in range(0, args.indentation):
         indentation += ' '
 
-    for filename in args.files:
+    files_to_sort = args.files
+
+    for included_dir in args.include_recursive:
+        included_dir = path.abspath(included_dir)
+        for root, dirs, files in os.walk(included_dir):
+            for file in files:
+                file = path.join(root, file)
+                basename, ext = path.splitext(file)
+                if ext.lower() in projectfile_extensions and not excluded(file, args.exclude_recursive):
+                    files_to_sort.append(file)
+
+    for filename in files_to_sort:
         resort_file(filename)
 
 
