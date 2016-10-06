@@ -12,7 +12,6 @@ value_seperation_regex = re.compile(r'^\s*(?P<file>[^\s]+)?\s*(?P<rest>.*)\s*$')
 variables_to_resort = ['SOURCES']
 
 
-
 class Line:
     def __init__(self, content):
         if '\r\n' in content:
@@ -99,7 +98,8 @@ def resort_file(filename):
                 last_line = Line(line)
                 lines.append(last_line)
 
-    had_change = False
+    # TODO #9 detect, whether the changes need to be saved
+    had_change = True
 
     if had_change:
         with open(filename, 'w') as file:
@@ -112,10 +112,10 @@ def go():
     global indentation
 
     # https://docs.python.org/2/library/argparse.html
-    parser = ArgumentParser(description='Resorts a qmake project file')
+    parser = ArgumentParser(description='Resorts a qmake project file as a heuristic to reduce the risk of merge conflicts.')
     parser.add_argument('-v', '--verbose', action='store_true', help='Add more verbose output for more easy debuggability')
     parser.add_argument('-i', '--indentation', default=4, help='How much spaces to add before each line break')
-    parser.add_argument('--files', dest='files', metavar='FILES', type=str, nargs='+', help='A list of files to resort')
+    parser.add_argument('--files', dest='files', metavar='FILES', default=[], type=str, nargs='+', help='A list of files to resort')
     args = parser.parse_args()
 
     verbose = args.verbose
