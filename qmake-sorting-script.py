@@ -10,7 +10,7 @@ value_analysis_regex = re.compile(r'^\s*(?P<rest>[^\\s\\][^\\]*)?\s*(?P<expect_n
 value_seperation_regex = re.compile(r'^\s*(?P<file>[^\s]+)?\s*(?P<rest>.*)\s*$')
 
 
-variables_to_resort = ['SOURCES']
+variables_to_resort = ['SOURCES', 'HEADERS', 'FORMS', 'RESOURCES']
 
 verbose = False
 print_resorted_files = False
