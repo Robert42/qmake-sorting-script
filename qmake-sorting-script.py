@@ -11,6 +11,9 @@ value_seperation_regex = re.compile(r'^\s*(?P<file>[^\s]+)?\s*(?P<rest>.*)\s*$')
 
 variables_to_resort = ['SOURCES']
 
+verbose = False
+indentation = ''
+
 
 class Line:
     def __init__(self, content):
