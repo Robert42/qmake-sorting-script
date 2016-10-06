@@ -2,6 +2,7 @@
 
 from argparse import ArgumentParser
 from copy import copy
+from os import path
 import re
 
 # https://docs.python.org/2/library/re.html
@@ -21,6 +22,7 @@ indentation = ''
 
 class Line:
     def __init__(self, content):
+        self.name = ''
         if '\r\n' in content:
             self.line_ending = '\r\n'
         else:
@@ -61,7 +63,7 @@ class Line:
 
     @property
     def is_resorted(self) -> bool:
-        return hasattr(self, 'name')
+        return len(self.name) > 0
 
     def append_line(self, line):
         line = line.replace(self.line_ending, '')
@@ -90,6 +92,20 @@ class Line:
         else:
             return False
 
+    def remove_inl_files(self):
+        inl_files = []
+        if self.is_resorted:
+            other_files = []
+            for file in self.files:
+                basename, ext = path.splitext(file)
+                if ext.lower() == '.inl':
+                    inl_files.append(file)
+                else:
+                    other_files.append(file)
+            self.files = other_files
+        return inl_files
+
+
     def _format_list(self):
         result = ['{} {}'.format(self.prefix + self.name, self.assignment)]
         result.extend(self.files)
@@ -115,8 +131,30 @@ def resort_file(filename):
                 lines.append(last_line)
 
     had_change = False
+    if move_inl_to_headers or move_inl_to_sources:
+        if move_inl_to_headers:
+            target_name = 'HEADERS'
+        elif move_inl_to_sources:
+            target_name = 'SOURCES'
+
+        all_inl_files = []
+        target_list = None
+        line_ending = '\n'
+        for line in lines:
+            line_ending = line.line_ending
+            if line.name == target_name:
+                target_list = line
+            else:
+                all_inl_files.extend(line.remove_inl_files())
+        if len(all_inl_files) > 0:
+            had_change = True
+            if not target_list:
+                target_list = Line('{} = \\{}'.format(target_name, line_ending))
+                lines.append(target_list)
+            target_list.files.extend(all_inl_files)
+
     for line in lines:
-        had_change = had_change or line.resort()
+        had_change = line.resort() or had_change
 
     if had_change:
         with open(filename, 'w') as file:
@@ -148,6 +186,10 @@ def go():
     move_inl_to_headers = args.move_inl_to_headers
     move_inl_to_sources = args.move_inl_to_sources
     indentation = ''
+
+    if move_inl_to_headers and move_inl_to_sources:
+        print("WARNING: --move-inl-to-headers and --move-inl-to-sources used at the same time!")
+
     for i in range(0, args.indentation):
         indentation += ' '
 
