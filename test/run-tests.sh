@@ -1,6 +1,6 @@
 #! /bin/bash
 
-DIR=$(pwd)
+DIR=$(dirname $(readlink -f $0))
 TEST_DIR=$DIR/test-files
 
 rm -rf $TEST_DIR
