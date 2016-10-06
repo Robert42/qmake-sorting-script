@@ -4,6 +4,7 @@ from argparse import ArgumentParser
 from copy import copy
 from os import path
 import re
+import os
 
 # https://docs.python.org/2/library/re.html
 list_start_regex = re.compile(r'^\s*(?P<prefix>(:?[a-z_A-Z][a-z_A-Z0-9]*\:)*)(?P<name>[A-Z_]+)\s*(?P<assignment>\+?=)\s*(?P<values>.*\\?)\s*$')
@@ -19,6 +20,7 @@ move_inl_to_headers = False
 move_inl_to_sources = False
 dry_run = False
 indentation = ''
+projectfile_extensions = ['.pro', '.pri']
 
 
 class Line:
@@ -192,6 +194,7 @@ def go():
     parser.add_argument('--move-inl-to-headers', action='store_true', help='If set, all inl files are moved to the HEADERS list (if existant)')
     parser.add_argument('--move-inl-to-sources', action='store_true', help='If set, all inl files are moved to the SOURCES list (if existant)')
     parser.add_argument('--files', dest='files', metavar='FILE', default=[], type=str, nargs='+', help='A list of files to resort')
+    parser.add_argument('-r', '--include-recursive', metavar='PATH', default=[], type=str, nargs='+', help='A list of directories to search for *.pro and *.pri files to resort')
     parser.add_argument('-n', '--dry-run', action='store_true', help="Don't change anything, just print the project files, which would be resorted")
     args = parser.parse_args()
 
@@ -208,7 +211,18 @@ def go():
     for i in range(0, args.indentation):
         indentation += ' '
 
-    for filename in args.files:
+    files_to_sort = args.files
+
+    for dir in args.include_recursive:
+        dir = path.abspath(dir)
+        for root, dirs, files in os.walk(dir):
+            for file in files:
+                file = path.join(root, file)
+                basename, ext = path.splitext(file)
+                if ext.lower() in projectfile_extensions:
+                    files_to_sort.append(file)
+
+    for filename in files_to_sort:
         resort_file(filename)
 
 
