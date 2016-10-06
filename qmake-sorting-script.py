@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from argparse import ArgumentParser
+from copy import copy
 import re
 
 # https://docs.python.org/2/library/re.html
@@ -10,6 +11,10 @@ value_seperation_regex = re.compile(r'^\s*(?P<file>[^\s]+)?\s*(?P<rest>.*)\s*$')
 
 
 variables_to_resort = ['SOURCES']
+
+verbose = False
+print_resorted_files = False
+indentation = ''
 
 
 class Line:
@@ -36,6 +41,7 @@ class Line:
                 self.assignment = assignment
                 self.files = []
                 self.expect_next_line = True
+                self._was_resorted = False
                 self.append_line(values)
                 if verbose:
                     print('self.name {}'.format(self.name))
@@ -47,7 +53,7 @@ class Line:
     @property
     def whole_content(self) -> str:
         if self.is_resorted:
-            return self._resort()
+            return self._format_list()
         else:
             return self.content + self.line_ending
 
@@ -70,11 +76,19 @@ class Line:
                 self.files.append(match.group('file'))
                 rest = match.group('rest')
         else:
-            self.expect_next_line = False;
+            self.expect_next_line = False
 
-    def _resort(self):
-        self.files.sort()
+    def resort(self):
+        if self.is_resorted:
+            comparison = copy(self.files)
+            self.files.sort()
+            if comparison != self.files:
+                self._was_resorted = True
+            return self._was_resorted
+        else:
+            return False
 
+    def _format_list(self):
         result = ['{} {}'.format(self.prefix + self.name, self.assignment)]
         result.extend(self.files)
         if verbose:
@@ -98,27 +112,33 @@ def resort_file(filename):
                 last_line = Line(line)
                 lines.append(last_line)
 
-    # TODO #9 detect, whether the changes need to be saved
-    had_change = True
+    had_change = False
+    for line in lines:
+        had_change = had_change or line.resort()
 
     if had_change:
         with open(filename, 'w') as file:
             for line in lines:
                 file.write(line.whole_content)
+        if print_resorted_files:
+            print("resorted file {}".format(filename))
 
 
 def go():
+    global print_resorted_files
     global verbose
     global indentation
 
     # https://docs.python.org/2/library/argparse.html
     parser = ArgumentParser(description='Resorts a qmake project file as a heuristic to reduce the risk of merge conflicts.')
     parser.add_argument('-v', '--verbose', action='store_true', help='Add more verbose output for more easy debuggability')
+    parser.add_argument('-p', '--print-resorted-files', dest='print_resorted_files', action='store_true', help='Print the filenames of the files, which were resorted')
     parser.add_argument('-i', '--indentation', default=4, help='How much spaces to add before each line break')
     parser.add_argument('--files', dest='files', metavar='FILES', default=[], type=str, nargs='+', help='A list of files to resort')
     args = parser.parse_args()
 
     verbose = args.verbose
+    print_resorted_files = args.print_resorted_files or verbose
     indentation = ''
     for i in range(0, args.indentation):
         indentation += ' '

@@ -121,7 +121,7 @@ $RUN_SCRIPT
 
 compare_with_expected
 
-$RUN_SCRIPT
+$RUN_SCRIPT --print-resorted-files
 
 compare_with_expected
 
