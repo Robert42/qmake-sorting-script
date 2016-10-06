@@ -58,3 +58,7 @@ Example:
 
     system(./path/to/qmake-sorting-script.py --move-inl-to-headers -r .)
 
+## Contributing
+
+When contributing, you have to accept to submit your patch under the unlicense.
+See [unlicense.org](http://unlicense.org/#unlicensing-contributions) for more informations about that.
