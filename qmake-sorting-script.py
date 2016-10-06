@@ -2,6 +2,7 @@
 
 from argparse import ArgumentParser
 from copy import copy
+from os import path
 import re
 
 # https://docs.python.org/2/library/re.html
@@ -14,11 +15,14 @@ variables_to_resort = ['SOURCES', 'HEADERS', 'FORMS', 'RESOURCES']
 
 verbose = False
 print_resorted_files = False
+move_inl_to_headers = False
+move_inl_to_sources = False
 indentation = ''
 
 
 class Line:
     def __init__(self, content):
+        self.name = ''
         if '\r\n' in content:
             self.line_ending = '\r\n'
         else:
@@ -59,7 +63,7 @@ class Line:
 
     @property
     def is_resorted(self) -> bool:
-        return hasattr(self, 'name')
+        return len(self.name) > 0
 
     def append_line(self, line):
         line = line.replace(self.line_ending, '')
@@ -88,6 +92,20 @@ class Line:
         else:
             return False
 
+    def remove_inl_files(self):
+        inl_files = []
+        if self.is_resorted:
+            other_files = []
+            for file in self.files:
+                basename, ext = path.splitext(file)
+                if ext.lower() == '.inl':
+                    inl_files.append(file)
+                else:
+                    other_files.append(file)
+            self.files = other_files
+        return inl_files
+
+
     def _format_list(self):
         result = ['{} {}'.format(self.prefix + self.name, self.assignment)]
         result.extend(self.files)
@@ -113,8 +131,30 @@ def resort_file(filename):
                 lines.append(last_line)
 
     had_change = False
+    if move_inl_to_headers or move_inl_to_sources:
+        if move_inl_to_headers:
+            target_name = 'HEADERS'
+        elif move_inl_to_sources:
+            target_name = 'SOURCES'
+
+        all_inl_files = []
+        target_list = None
+        line_ending = '\n'
+        for line in lines:
+            line_ending = line.line_ending
+            if line.name == target_name:
+                target_list = line
+            else:
+                all_inl_files.extend(line.remove_inl_files())
+        if len(all_inl_files) > 0:
+            had_change = True
+            if not target_list:
+                target_list = Line('{} = \\{}'.format(target_name, line_ending))
+                lines.append(target_list)
+            target_list.files.extend(all_inl_files)
+
     for line in lines:
-        had_change = had_change or line.resort()
+        had_change = line.resort() or had_change
 
     if had_change:
         with open(filename, 'w') as file:
@@ -128,18 +168,28 @@ def go():
     global print_resorted_files
     global verbose
     global indentation
+    global move_inl_to_headers
+    global move_inl_to_sources
 
     # https://docs.python.org/2/library/argparse.html
     parser = ArgumentParser(description='Resorts a qmake project file as a heuristic to reduce the risk of merge conflicts.')
     parser.add_argument('-v', '--verbose', action='store_true', help='Add more verbose output for more easy debuggability')
     parser.add_argument('-p', '--print-resorted-files', dest='print_resorted_files', action='store_true', help='Print the filenames of the files, which were resorted')
     parser.add_argument('-i', '--indentation', default=4, help='How much spaces to add before each line break')
+    parser.add_argument('--move-inl-to-headers', action='store_true', help='If set, all inl files are moved to the HEADERS list (if existant)')
+    parser.add_argument('--move-inl-to-sources', action='store_true', help='If set, all inl files are moved to the SOURCES list (if existant)')
     parser.add_argument('--files', dest='files', metavar='FILES', default=[], type=str, nargs='+', help='A list of files to resort')
     args = parser.parse_args()
 
     verbose = args.verbose
     print_resorted_files = args.print_resorted_files or verbose
+    move_inl_to_headers = args.move_inl_to_headers
+    move_inl_to_sources = args.move_inl_to_sources
     indentation = ''
+
+    if move_inl_to_headers and move_inl_to_sources:
+        print("WARNING: --move-inl-to-headers and --move-inl-to-sources used at the same time!")
+
     for i in range(0, args.indentation):
         indentation += ' '
 
