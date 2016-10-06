@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from argparse import ArgumentParser
+from copy import copy
 import re
 
 # https://docs.python.org/2/library/re.html
@@ -40,6 +41,7 @@ class Line:
                 self.assignment = assignment
                 self.files = []
                 self.expect_next_line = True
+                self._was_resorted = False
                 self.append_line(values)
                 if verbose:
                     print('self.name {}'.format(self.name))
@@ -51,7 +53,7 @@ class Line:
     @property
     def whole_content(self) -> str:
         if self.is_resorted:
-            return self._resort()
+            return self._format_list()
         else:
             return self.content + self.line_ending
 
@@ -74,11 +76,19 @@ class Line:
                 self.files.append(match.group('file'))
                 rest = match.group('rest')
         else:
-            self.expect_next_line = False;
+            self.expect_next_line = False
 
-    def _resort(self):
-        self.files.sort()
+    def resort(self):
+        if self.is_resorted:
+            comparison = copy(self.files)
+            self.files.sort()
+            if comparison != self.files:
+                self._was_resorted = True
+            return self._was_resorted
+        else:
+            return False
 
+    def _format_list(self):
         result = ['{} {}'.format(self.prefix + self.name, self.assignment)]
         result.extend(self.files)
         if verbose:
@@ -102,8 +112,9 @@ def resort_file(filename):
                 last_line = Line(line)
                 lines.append(last_line)
 
-    # TODO #9 detect, whether the changes need to be saved
-    had_change = True
+    had_change = False
+    for line in lines:
+        had_change = had_change or line.resort()
 
     if had_change:
         with open(filename, 'w') as file:
