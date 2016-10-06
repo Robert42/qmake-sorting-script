@@ -178,6 +178,14 @@ def resort_file(filename):
             print("resorted file {}".format(filename))
 
 
+def excluded(file, excluded_dirs):
+    for d in excluded_dirs:
+        d = path.abspath(d)
+        if file.startswith(d):
+            return True
+    return False
+
+
 def go():
     global print_resorted_files
     global verbose
@@ -195,6 +203,7 @@ def go():
     parser.add_argument('--move-inl-to-sources', action='store_true', help='If set, all inl files are moved to the SOURCES list (if existant)')
     parser.add_argument('--files', dest='files', metavar='FILE', default=[], type=str, nargs='+', help='A list of files to resort')
     parser.add_argument('-r', '--include-recursive', metavar='PATH', default=[], type=str, nargs='+', help='A list of directories to search for *.pro and *.pri files to resort')
+    parser.add_argument('-e', '--exclude-recursive', metavar='PATH', default=[], type=str, nargs='+', help='A list of directories to exclude from the search for *.pro and *.pri files to resort')
     parser.add_argument('-n', '--dry-run', action='store_true', help="Don't change anything, just print the project files, which would be resorted")
     args = parser.parse_args()
 
@@ -213,13 +222,13 @@ def go():
 
     files_to_sort = args.files
 
-    for dir in args.include_recursive:
-        dir = path.abspath(dir)
-        for root, dirs, files in os.walk(dir):
+    for included_dir in args.include_recursive:
+        included_dir = path.abspath(included_dir)
+        for root, dirs, files in os.walk(included_dir):
             for file in files:
                 file = path.join(root, file)
                 basename, ext = path.splitext(file)
-                if ext.lower() in projectfile_extensions:
+                if ext.lower() in projectfile_extensions and not excluded(file, args.exclude_recursive):
                     files_to_sort.append(file)
 
     for filename in files_to_sort:
