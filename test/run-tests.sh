@@ -118,8 +118,7 @@ SOURCES = \
     c.cpp \
     c.inl \
     a.cpp \
-    a.inl
-' > test10.pro
+    a.inl' > test10.pro
 
 echo '# move inl files to HEADERS with prefixes
 unix:HEADERS = au.h
@@ -143,8 +142,7 @@ SOURCES = \
     c.cpp \
     c.inl \
     a.cpp \
-    a.inl
-' > test10.pro
+    a.inl' > test11.pro
 
 echo '# handle all in the first line
 SOURCES += \
@@ -266,19 +264,18 @@ SOURCES = \
     a.cpp \
     b.cpp \
     c.cpp
-win32:HEADERS = \
-    aw.inl \
-    bw.inl \
-    cw.inl
-unix:HEADERS = \
-    au.h \
-    au.inl \
-    bu.inl \
-    cu.inl
 HEADERS = \
     a.inl \
     b.inl \
-    c.inl' > expected10.pro
+    c.inl
+unix:HEADERS = \
+    au.inl \
+    bu.inl \
+    cu.inl
+win32:HEADERS = \
+    aw.inl \
+    bw.inl \
+    cw.inl' > expected10.pro
 
 echo '# move inl files to HEADERS with prefixes
 unix:HEADERS = \
@@ -298,14 +295,14 @@ SOURCES = \
     a.cpp \
     b.cpp \
     c.cpp
-win32:HEADERS = \
-    aw.inl \
-    bw.inl \
-    cw.inl
 HEADERS = \
     a.inl \
     b.inl \
-    c.inl' > expected11.pro
+    c.inl
+win32:HEADERS = \
+    aw.inl \
+    bw.inl \
+    cw.inl' > expected11.pro
 
 compare_with_expected()
 {
