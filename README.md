@@ -8,6 +8,10 @@ If you want to resort all qmake project files found recursively in */path/to/my/
     ./qmake-sorting-script.py -r /path/to/my/project
 
 
+If you also want to move all inl files to the `HEADERS`, you can additionally use the flag *--move-inl-to-headers*
+
+    ./qmake-sorting-script.py --move-inl-to-headers -r /path/to/my/project
+
 Overview over all possible arguments
 
 
