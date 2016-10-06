@@ -12,6 +12,7 @@ value_seperation_regex = re.compile(r'^\s*(?P<file>[^\s]+)?\s*(?P<rest>.*)\s*$')
 variables_to_resort = ['SOURCES']
 
 verbose = False
+print_resorted_files = False
 indentation = ''
 
 
@@ -108,20 +109,25 @@ def resort_file(filename):
         with open(filename, 'w') as file:
             for line in lines:
                 file.write(line.whole_content)
+        if print_resorted_files:
+            print("resorted file {}".format(filename))
 
 
 def go():
+    global print_resorted_files
     global verbose
     global indentation
 
     # https://docs.python.org/2/library/argparse.html
     parser = ArgumentParser(description='Resorts a qmake project file as a heuristic to reduce the risk of merge conflicts.')
     parser.add_argument('-v', '--verbose', action='store_true', help='Add more verbose output for more easy debuggability')
+    parser.add_argument('-p', '--print-resorted-files', dest='print_resorted_files', action='store_true', help='Print the filenames of the files, which were resorted')
     parser.add_argument('-i', '--indentation', default=4, help='How much spaces to add before each line break')
     parser.add_argument('--files', dest='files', metavar='FILES', default=[], type=str, nargs='+', help='A list of files to resort')
     args = parser.parse_args()
 
     verbose = args.verbose
+    print_resorted_files = args.print_resorted_files or verbose
     indentation = ''
     for i in range(0, args.indentation):
         indentation += ' '
