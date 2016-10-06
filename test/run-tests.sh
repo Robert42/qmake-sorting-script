@@ -121,3 +121,7 @@ $RUN_SCRIPT
 
 compare_with_expected
 
+$RUN_SCRIPT
+
+compare_with_expected
+
