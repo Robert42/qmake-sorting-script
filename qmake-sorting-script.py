@@ -23,6 +23,7 @@ indentation = ''
 class Line:
     def __init__(self, content):
         self.name = ''
+        self.prefix = ''
         if '\r\n' in content:
             self.line_ending = '\r\n'
         else:
@@ -105,7 +106,6 @@ class Line:
             self.files = other_files
         return inl_files
 
-
     def _format_list(self):
         result = ['{} {}'.format(self.prefix + self.name, self.assignment)]
         result.extend(self.files)
@@ -137,21 +137,25 @@ def resort_file(filename):
         elif move_inl_to_sources:
             target_name = 'SOURCES'
 
-        all_inl_files = []
-        target_list = None
+        all_inl_files = {}
+        target_list = {}
         line_ending = '\n'
         for line in lines:
             line_ending = line.line_ending
             if line.name == target_name:
-                target_list = line
+                target_list[line.prefix] = line
             else:
-                all_inl_files.extend(line.remove_inl_files())
+                if line.prefix not in all_inl_files:
+                    all_inl_files[line.prefix] = []
+                all_inl_files[line.prefix].extend(line.remove_inl_files())
         if len(all_inl_files) > 0:
-            had_change = True
-            if not target_list:
-                target_list = Line('{} = \\{}'.format(target_name, line_ending))
-                lines.append(target_list)
-            target_list.files.extend(all_inl_files)
+            for key in sorted(all_inl_files.keys()):
+                if len(all_inl_files[key]) > 0:
+                    had_change = True
+                    if key not in target_list:
+                        target_list[key] = Line('{}{} = \\{}'.format(key, target_name, line_ending))
+                        lines.append(target_list[key])
+                    target_list[key].files.extend(all_inl_files[key])
 
     for line in lines:
         had_change = line.resort() or had_change
