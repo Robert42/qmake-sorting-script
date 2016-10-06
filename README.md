@@ -49,3 +49,12 @@ optional arguments:
   -n, --dry-run         Don't change anything, just print the project files,
                         which would be resorted
 ```
+
+## Execute from qmake
+
+You can call this function automatically everytime you run qmake, by using the
+qmake command [system](http://doc.qt.io/qt-5/qmake-test-function-reference.html#system-command).
+Example:
+
+    system(./path/to/qmake-sorting-script.py --move-inl-to-headers -r .)
+
