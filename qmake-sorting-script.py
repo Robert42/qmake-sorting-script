@@ -231,6 +231,9 @@ def go():
                 if ext.lower() in projectfile_extensions and not excluded(file, args.exclude_recursive):
                     files_to_sort.append(file)
 
+    if len(files_to_sort) == 0:
+        print("Nothing to sort")
+
     for filename in files_to_sort:
         resort_file(filename)
 
