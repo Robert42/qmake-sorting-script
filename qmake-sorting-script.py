@@ -17,6 +17,7 @@ verbose = False
 print_resorted_files = False
 move_inl_to_headers = False
 move_inl_to_sources = False
+dry_run = False
 indentation = ''
 
 
@@ -160,6 +161,13 @@ def resort_file(filename):
     for line in lines:
         had_change = line.resort() or had_change
 
+    if dry_run:
+        if had_change:
+            print('Would resort file {}'.format(filename))
+        else:
+            print('Would  skip  file {}'.format(filename))
+        return
+
     if had_change:
         with open(filename, 'w') as file:
             for line in lines:
@@ -174,6 +182,7 @@ def go():
     global indentation
     global move_inl_to_headers
     global move_inl_to_sources
+    global dry_run
 
     # https://docs.python.org/2/library/argparse.html
     parser = ArgumentParser(description='Resorts a qmake project file as a heuristic to reduce the risk of merge conflicts.')
@@ -183,9 +192,11 @@ def go():
     parser.add_argument('--move-inl-to-headers', action='store_true', help='If set, all inl files are moved to the HEADERS list (if existant)')
     parser.add_argument('--move-inl-to-sources', action='store_true', help='If set, all inl files are moved to the SOURCES list (if existant)')
     parser.add_argument('--files', dest='files', metavar='FILE', default=[], type=str, nargs='+', help='A list of files to resort')
+    parser.add_argument('-n', '--dry-run', action='store_true', help="Don't change anything, just print the project files, which would be resorted")
     args = parser.parse_args()
 
     verbose = args.verbose
+    dry_run = args.dry_run
     print_resorted_files = args.print_resorted_files or verbose
     move_inl_to_headers = args.move_inl_to_headers
     move_inl_to_sources = args.move_inl_to_sources
