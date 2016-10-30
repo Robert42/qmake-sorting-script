@@ -47,6 +47,8 @@ dry_run = False
 indentation = ''
 projectfile_extensions = ['.pro', '.pri']
 
+sorting_key = str.lower
+
 
 class Line:
     def __init__(self, content):
@@ -114,7 +116,7 @@ class Line:
     def resort(self):
         if self.is_resorted:
             comparison = copy(self.files)
-            self.files.sort()
+            self.files.sort(key=sorting_key)
             if comparison != self.files:
                 self._was_resorted = True
             return self._was_resorted
@@ -177,7 +179,7 @@ def resort_file(filename):
                     all_inl_files[line.prefix] = []
                 all_inl_files[line.prefix].extend(line.remove_inl_files())
         if len(all_inl_files) > 0:
-            for key in sorted(all_inl_files.keys()):
+            for key in sorted(all_inl_files.keys(), key=sorting_key):
                 if len(all_inl_files[key]) > 0:
                     had_change = True
                     if key not in target_list:
