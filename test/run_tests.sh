@@ -27,7 +27,7 @@
 
 DIR=$(dirname $(readlink -f $0))
 TEST_DIR=$DIR/test-files
-SCRIPT=$DIR/../qmake-sorting-script.py
+SCRIPT=$DIR/../qmake_sorting_script.py
 
 
 rm -rf $TEST_DIR
